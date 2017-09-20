@@ -43,4 +43,6 @@
  */
 #define S3C_ADDR_CPU(x)	S3C_ADDR(0x00500000 + (x))
 
+#define S3C_VA_LCD S3C_ADDR(0x01100000)	/* LCD */
+
 #endif /* __ASM_PLAT_MAP_H */

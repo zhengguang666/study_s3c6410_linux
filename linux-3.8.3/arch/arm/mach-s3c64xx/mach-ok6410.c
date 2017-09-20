@@ -46,10 +46,22 @@
 #include <video/samsung_fimd.h>
 
 #include "common.h"
+#include <plat/sdhci.h>
 
 #define UCON S3C2410_UCON_DEFAULT
 #define ULCON (S3C2410_LCON_CS8 | S3C2410_LCON_PNONE | S3C2410_LCON_STOPB)
 #define UFCON (S3C2410_UFCON_RXTRIG8 | S3C2410_UFCON_FIFOMODE)
+
+/*MMC/SD config*/
+static struct s3c_sdhci_platdata ok6410_hsmmc0_pdata = {
+	.max_width = 4,
+	.cd_type = S3C_SDHCI_CD_INTERNAL,
+};
+static struct s3c_sdhci_platdata ok6410_hsmmc1_pdata = {
+        .max_width = 4,
+        .cd_type = S3C_SDHCI_CD_PERMANENT,
+};
+
 
 static struct s3c2410_uartcfg ok6410_uartcfgs[] __initdata = {
 	[0] = {
@@ -107,20 +119,28 @@ static struct platform_device ok6410_device_eth = {
 
 static struct mtd_partition ok6410_nand_part[] = {
 	[0] = {
-		.name	= "uboot",
+		.name	= "Bootloader",
 		.size	= SZ_1M,
 		.offset	= 0,
+		.mask_flags = MTD_CAP_NANDFLASH,
 	},
 	[1] = {
-		.name	= "kernel",
-		.size	= SZ_2M,
+		.name	= "Kernel",
+		.size	= (5 * SZ_1M),
 		.offset	= SZ_1M,
+		.mask_flags = MTD_CAP_NANDFLASH,
 	},
 	[2] = {
-		.name	= "rootfs",
-		.size	= MTDPART_SIZ_FULL,
-		.offset	= SZ_1M + SZ_2M,
+		.name	= "File System",
+		.size	= (200 * SZ_1M),
+		.offset	= (6 * SZ_1M),
 	},
+        [3] = {
+                .name   = "User",
+                .size   = MTDPART_SIZ_FULL,
+                .offset = MTDPART_OFS_APPEND,
+        },
+
 };
 
 static struct s3c2410_nand_set ok6410_nand_sets[] = {
@@ -148,6 +168,7 @@ static struct s3c_fb_pd_win ok6410_lcd_type0_fb_win = {
 };
 
 static struct fb_videomode ok6410_lcd_type0_timing = {
+#if 0
 	/* 4.3" 480x272 */
 	.left_margin	= 3,
 	.right_margin	= 2,
@@ -157,6 +178,25 @@ static struct fb_videomode ok6410_lcd_type0_timing = {
 	.vsync_len	= 1,
 	.xres		= 480,
 	.yres		= 272,
+#endif
+	.left_margin	= 3,
+	.right_margin	= 5,
+	.upper_margin	= 3,
+	.lower_margin	= 3,
+	.hsync_len	= 42,
+	.vsync_len	= 12,
+	.xres		= 480,
+	.yres		= 272,
+};
+
+static struct map_desc ok6410_iodesc[] = {
+	{
+		/* LCD support */
+		.virtual = (unsigned long)S3C_VA_LCD,
+		.pfn	= __phys_to_pfn(S3C_PA_FB),
+		.length = SZ_16K,
+		.type	= MT_DEVICE,
+	}
 };
 
 static struct s3c_fb_pd_win ok6410_lcd_type1_fb_win = {
@@ -230,7 +270,10 @@ static void __init ok6410_map_io(void)
 {
 	u32 tmp;
 
+#if 0
 	s3c64xx_init_io(NULL, 0);
+#endif
+	s3c64xx_init_io(ok6410_iodesc, ARRAY_SIZE(ok6410_iodesc));
 	s3c24xx_init_clocks(12000000);
 	s3c24xx_init_uarts(ok6410_uartcfgs, ARRAY_SIZE(ok6410_uartcfgs));
 
@@ -318,6 +361,11 @@ static void __init ok6410_machine_init(void)
 		ok6410_lcd_pdata[features.lcd_index].win[0]->xres,
 		ok6410_lcd_pdata[features.lcd_index].win[0]->yres);
 
+	s3c_nand_set_platdata(&ok6410_nand_info);
+	s3c_fb_set_platdata(&ok6410_lcd_pdata[features.lcd_index]);
+	s3c24xx_ts_set_platdata(NULL);
+
+	s3c_device_nand.name = "s3c6410-nand";
 	s3c_nand_set_platdata(&ok6410_nand_info);
 	s3c_fb_set_platdata(&ok6410_lcd_pdata[features.lcd_index]);
 	s3c24xx_ts_set_platdata(NULL);

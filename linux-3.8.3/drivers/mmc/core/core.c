@@ -2204,13 +2204,17 @@ void mmc_rescan(struct work_struct *work)
 		mmc_release_host(host);
 		goto out;
 	}
-
+	int aaa;
 	mmc_claim_host(host);
 	for (i = 0; i < ARRAY_SIZE(freqs); i++) {
-		if (!mmc_rescan_try_freq(host, max(freqs[i], host->f_min)))
-			break;
+		pr_info("host->f_min:%d\n",host->f_min);
+		pr_info("freqs[%d]:%d\n",i,freqs[i]);
+		aaa = mmc_rescan_try_freq(host, max(freqs[i], host->f_min));
+		pr_info("aaa:%d\n",aaa);
+		if (!aaa)
+			{pr_info("OK++++++\n");break;}
 		if (freqs[i] <= host->f_min)
-			break;
+			{pr_info("OK2+++++++\n");break;}
 	}
 	mmc_release_host(host);
 
